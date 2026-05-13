@@ -61,7 +61,7 @@ dans une application web moderne.
 
 L'application est entièrement côté client, sans serveur.
 
-
+```
 Navigateur
 ├── Vue 3 (UI)
 │   ├── MenuScreen      → Saisie du pseudo, affichage du classement
@@ -72,6 +72,7 @@ Navigateur
 │   └── RaceScene       → Logique de course, physique, HUD
 └── Stores (Pinia/Réactif)
     └── gameStore       → État partagé (nom, état, temps, classement)
+```
 
 
 Vue et Phaser communiquent via un store réactif commun. Pas de communication
