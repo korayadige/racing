@@ -6,7 +6,7 @@ Simulation de course  en automonile en 2D (vue de dessus) avec un mode 'Time-Att
 ## 1. Informations générales
 
 - **Nom du projet**       : Racing 
-- **Membres de l'équipe** : [Koray AKGUL], [Adrien MARCUARD]
+- **Membres de l'équipe** : [Koray AKGUL], [Adrien MARCUARD][Jonatan PERRET]
 - **Lien du dépôt Git**   : *[Racing 2D Simulation](https://github.com/korayadige/racing)*
 
 ## 2. Description du projet
