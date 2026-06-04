@@ -3,7 +3,7 @@ export interface GamepadInput {
   throttle: number // 0 .. 1
   brake: number    // 0 .. 1
 }
-
+// https://stackoverflow.com/questions/10839310/html5-gamepad-api-on-chrome?rq=4
 export class GamepadManager {
   private readonly DEADZONE = 0.12
 
