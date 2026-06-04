@@ -3,13 +3,39 @@ import { gameStore, finishRace } from '../../stores/gameStore'
 import { SoundManager } from '../SoundManager'
 import { GamepadManager } from '../GamepadManager'
 
-const OUTER = { cx: 550, cy: 375, a: 485, b: 310 }
-const INNER = { cx: 550, cy: 375, a: 270, b: 165 }
+const SCREEN_CENTER_X = 550
+const SCREEN_CENTER_Y = 375
 
+const OUTER_TRACK_RADIUS_X = 485
+const OUTER_TRACK_RADIUS_Y = 310
+
+const INNER_TRACK_RADIUS_X = 270
+const INNER_TRACK_RADIUS_Y = 165
+
+const OUTER = {
+  cx: SCREEN_CENTER_X,
+  cy: SCREEN_CENTER_Y,
+  a: OUTER_TRACK_RADIUS_X,
+  b: OUTER_TRACK_RADIUS_Y,
+}
+
+const INNER = {
+  cx: SCREEN_CENTER_X,
+  cy: SCREEN_CENTER_Y,
+  a: INNER_TRACK_RADIUS_X,
+  b: INNER_TRACK_RADIUS_Y,
+}
+
+/**
+ * Returns a value < 1 if the point is inside the ellipse, = 1 on the boundary, > 1 outside.
+ */
 function ellipseValue(x: number, y: number, e: typeof OUTER): number {
   return ((x - e.cx) / e.a) ** 2 + ((y - e.cy) / e.b) ** 2
 }
 
+/**
+ * Returns true if the point is within the drivable track surface (between inner and outer ellipses).
+ */
 function isOnTrack(x: number, y: number): boolean {
   return ellipseValue(x, y, OUTER) <= 1 && ellipseValue(x, y, INNER) >= 1
 }
@@ -24,6 +50,9 @@ export class RaceScene extends Phaser.Scene {
   private readonly acceleration = 0.28
   private readonly friction = 0.94
   private readonly turnSpeed = 3.2
+  private readonly GRASS_ACCEL_PENALTY = 0.65
+  private readonly MIN_SPEED_TO_TURN = 0.2
+  private readonly REVERSE_SPEED_DIVIDER = 2
 
   private lapCount = 0
   private raceStartTime = 0
@@ -37,6 +66,7 @@ export class RaceScene extends Phaser.Scene {
   private finishCooldown = 3000
   private raceFinished = false
 
+  /** Right, bottom, and left gates — must all be passed in order before a lap counts. */
   private readonly CHECKPOINTS = [
     { x: 927, y: 375 },
     { x: 550, y: 613 },
@@ -244,20 +274,14 @@ export class RaceScene extends Phaser.Scene {
     const color = 0x00ddff
     g.lineStyle(5, color, 0.9)
 
-    // Sağ gate — yatay, y=375 hizasında iç-dış kenar arası
-    g.beginPath(); g.moveTo(820, 375); g.lineTo(1035, 375); g.strokePath()
+    g.beginPath(); g.moveTo(820, 375);  g.lineTo(1035, 375); g.strokePath() // right gate
+    g.beginPath(); g.moveTo(550, 540);  g.lineTo(550, 685);  g.strokePath() // bottom gate
+    g.beginPath(); g.moveTo(65,  375);  g.lineTo(280, 375);  g.strokePath() // left gate
 
-    // Alt gate — dikey, x=550 hizasında iç-dış kenar arası
-    g.beginPath(); g.moveTo(550, 540); g.lineTo(550, 685); g.strokePath()
-
-    // Sol gate — yatay, y=375 hizasında iç-dış kenar arası
-    g.beginPath(); g.moveTo(65, 375); g.lineTo(280, 375); g.strokePath()
-
-    // Her gate'e numara etiketi
     const labelStyle = { fontSize: '13px', color: '#00ddff', backgroundColor: '#00000088', padding: { x: 3, y: 1 } }
     this.add.text(1038, 368, 'CP1', labelStyle).setDepth(5)
-    this.add.text(554, 688,  'CP2', labelStyle).setDepth(5)
-    this.add.text(20,  368,  'CP3', labelStyle).setDepth(5)
+    this.add.text(554,  688, 'CP2', labelStyle).setDepth(5)
+    this.add.text(20,   368, 'CP3', labelStyle).setDepth(5)
   }
 
   // ── Car ───────────────────────────────────────────────────────
@@ -368,6 +392,10 @@ export class RaceScene extends Phaser.Scene {
     this.updateHUD(steer, throttle)
   }
 
+  /**
+   * Reads input from keyboard and gamepad. Gamepad takes priority when connected.
+   * @returns Normalized steer (-1..1), throttle (0..1), and brake (0..1).
+   */
   private readInput(): { steer: number; throttle: number; brake: number } {
     const gp = this.gamepad.getInput()
     if (gp) return gp
@@ -378,24 +406,35 @@ export class RaceScene extends Phaser.Scene {
     return { steer, throttle, brake }
   }
 
+  /**
+   * Applies acceleration, braking, and steering based on input and current speed.
+   * Off-road reduces acceleration by GRASS_ACCEL_PENALTY. Steering is reversed in reverse gear.
+   * @param steer -1 (left) to 1 (right)
+   * @param throttle 0 to 1
+   * @param brake 0 to 1
+   */
   private applyInput(steer: number, throttle: number, brake: number) {
     const onRoad = isOnTrack(this.car.x, this.car.y)
-    const accel = onRoad ? this.acceleration : this.acceleration * 0.65
+    const accel = onRoad ? this.acceleration : this.acceleration * this.GRASS_ACCEL_PENALTY
 
     if (throttle > 0) {
       this.speed = Math.min(this.speed + accel * throttle, this.maxSpeed)
     } else if (brake > 0) {
-      this.speed = Math.max(this.speed - accel * brake, -(this.maxSpeed / 2))
+      const maxReverseSpeed = -(this.maxSpeed / this.REVERSE_SPEED_DIVIDER)
+      this.speed = Math.max(this.speed - accel * brake, maxReverseSpeed)
     } else {
       this.speed *= this.friction
     }
 
-    if (Math.abs(this.speed) > 0.2) {
+    if (Math.abs(this.speed) > this.MIN_SPEED_TO_TURN) {
       const direction = this.speed > 0 ? 1 : -1
       this.carAngle += steer * this.turnSpeed * direction
     }
   }
 
+  /**
+   * Moves the car forward along its current heading each frame.
+   */
   private moveCar() {
     const rad = Phaser.Math.DegToRad(this.carAngle)
     this.car.x += Math.sin(rad) * this.speed
@@ -403,6 +442,10 @@ export class RaceScene extends Phaser.Scene {
     this.car.setRotation(rad)
   }
 
+  /**
+   * Checks track boundaries and bounces the car back if it leaves the track.
+   * Uses ellipse surface normals for accurate push direction, iterating until the car is back on track.
+   */
   private applyTrackPhysics() {
     if (ellipseValue(this.car.x, this.car.y, OUTER) > 1) {
       if (Math.abs(this.speed) > 1) this.sfx.playHit()
@@ -432,6 +475,10 @@ export class RaceScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Checks if the car has reached the next checkpoint in sequence.
+   * Shows a brief HUD notification on each pass.
+   */
   private checkCheckpoints() {
     if (this.nextCheckpoint >= this.CHECKPOINTS.length) return
 
@@ -450,6 +497,10 @@ export class RaceScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Detects finish line crossings and increments the lap counter.
+   * A lap is only counted when all checkpoints have been passed in order.
+   */
   private checkFinishLine(delta: number) {
     this.finishCooldown -= delta
     if (this.finishCooldown > 0) return
@@ -460,7 +511,7 @@ export class RaceScene extends Phaser.Scene {
     const finishBottom = OUTER.cy - INNER.b
 
     if (x > OUTER.cx - 25 && x < OUTER.cx + 25 && y > finishTop && y < finishBottom && this.speed > 0) {
-      if (this.nextCheckpoint < this.CHECKPOINTS.length) return  // tüm checkpoint'ler geçilmeden tur sayılmaz
+      if (this.nextCheckpoint < this.CHECKPOINTS.length) return
       this.nextCheckpoint = 0
       this.lapCount++
       gameStore.currentLap = this.lapCount

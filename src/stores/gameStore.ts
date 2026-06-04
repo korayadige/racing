@@ -32,10 +32,12 @@ export function startGame(name: string) {
 }
 
 export function finishRace(totalTime: number) {
+  const LIMIT_BEST_TIMES = 10;
+
   gameStore.lastRaceTime = totalTime
   gameStore.bestTimes.push({ playerName: gameStore.playerName, time: totalTime })
   gameStore.bestTimes.sort((a, b) => a.time - b.time)
-  gameStore.bestTimes = gameStore.bestTimes.slice(0, 10)
+  gameStore.bestTimes = gameStore.bestTimes.slice(0, LIMIT_BEST_TIMES)
   localStorage.setItem('racing-best-times', JSON.stringify(gameStore.bestTimes))
   gameStore.screen = 'gameover'
 }
@@ -46,9 +48,9 @@ export function goToMenu() {
 
 export function formatTime(ms: number): string {
  
-  const MS_PER_SECOND = 1000       // 1 second = 1000 ms
-  const MS_PER_MINUTE = 60000      // 1 min = 60  * 1000 ms = 60.000 ms
-  const MS_PER_CENTISECOND = 10    // 1 centisecond  = 10 ms
+  const MS_PER_SECOND = 1000      
+  const MS_PER_MINUTE = 60000      
+  const MS_PER_CENTISECOND = 10    
 
   const minutes = Math.floor(ms / MS_PER_MINUTE)
   const seconds = Math.floor((ms % MS_PER_MINUTE) / MS_PER_SECOND)
