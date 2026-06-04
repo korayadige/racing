@@ -138,6 +138,19 @@ export class SoundManager {
     osc.stop(this.ctx.currentTime + 0.25)
   }
 
+  /** Short beep for countdown numbers (3, 2, 1) */
+  playCountdownBeep() {
+    if (this.ctx.state === 'suspended') this.ctx.resume()
+    this.scheduleBeep(440, 'sine', 0.25, 0, 0.12)
+  }
+
+  /** Longer high-pitched double beep for GO! */
+  playCountdownGo() {
+    if (this.ctx.state === 'suspended') this.ctx.resume()
+    this.scheduleBeep(880, 'sine', 0.35, 0,    0.18)
+    this.scheduleBeep(880, 'sine', 0.25, 0.22, 0.28)
+  }
+
   /** Ascending arpeggio on lap complete */
   playLapComplete() {
     ;[523, 659, 784, 1047].forEach((freq, i) => {

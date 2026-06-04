@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { gameStore, finishRace } from '../../stores/gameStore'
+import { gameStore, finishRace, goToMenu } from '../../stores/gameStore'
 import { SoundManager } from '../SoundManager'
 import { GamepadManager } from '../GamepadManager'
 
@@ -46,12 +46,13 @@ export class RaceScene extends Phaser.Scene {
 
   private speed = 0
   private carAngle = 0
-  private readonly maxSpeed = 9
-  private readonly acceleration = 0.28
+  private readonly maxSpeed = 7
+  private readonly acceleration = 0.24
   private readonly friction = 0.94
   private readonly turnSpeed = 3.2
   private readonly grassAccelPenalty = 0.65
   private readonly minSpeedToTurn = 0.2
+  private readonly corneringSlowdown = 0.018  // speed loss per frame when steering hard
   private readonly reverseSpeedDivider = 2
   private readonly bounceDamping = 0.3      // fraction of speed retained (inverted) after wall impact
   private readonly wallPushStep = 3         // pixels pushed per iteration when resolving overlap
@@ -66,9 +67,18 @@ export class RaceScene extends Phaser.Scene {
   private sfx!: SoundManager
   private gamepad!: GamepadManager
   private gamepadText!: Phaser.GameObjects.Text
-  private finishCooldown = 3000
+  private readonly initialFinishCooldown = 3000
+  private readonly lapCooldown = 2000
+  private readonly gameoverDelay = 1200
+  private readonly cpTextDuration = 1800
+  private readonly finishZoneHalfWidth = 25
+
+  private finishCooldown = this.initialFinishCooldown
   private raceFinished = false
   private countdownActive = true
+  private paused = false
+  private pauseOverlay: Phaser.GameObjects.Container | null = null
+  private pausedElapsed = 0
 
   /** Left, bottom, and right gates — must all be passed in order before a lap counts. */
   private readonly checkpoints = [
@@ -92,6 +102,11 @@ export class RaceScene extends Phaser.Scene {
     this.cursors = this.input.keyboard!.createCursorKeys()
     this.lapCount = 0
     this.nextCheckpoint = 0
+    this.finishCooldown = this.initialFinishCooldown
+    this.raceFinished = false
+    this.countdownActive = true
+    this.paused = false
+    this.pauseOverlay = null
     gameStore.currentLap = 0
 
     this.sfx = new SoundManager()
@@ -99,7 +114,57 @@ export class RaceScene extends Phaser.Scene {
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.sfx.destroy())
 
+    this.input.keyboard!.on('keydown-ESC', () => this.togglePause())
+
     this.startCountdown()
+  }
+
+  private togglePause() {
+    if (this.countdownActive || this.raceFinished) return
+    this.paused ? this.resumeGame() : this.pauseGame()
+  }
+
+  private pauseGame() {
+    this.paused = true
+    this.sfx.stop()
+    this.pausedElapsed = this.time.now - this.raceStartTime
+
+    const cx = this.scale.width / 2
+    const cy = this.scale.height / 2
+    const W = 320
+    const H = 260
+
+    const bg = this.add.rectangle(0, 0, W, H, 0x000000, 0.82).setOrigin(0)
+    const title = this.add.text(W / 2, 36, 'PAUSED', {
+      fontSize: '32px', color: '#ffffff', stroke: '#000000', strokeThickness: 4,
+    }).setOrigin(0.5)
+
+    const btnStyle = { fontSize: '20px', color: '#000000' }
+
+    const makeBtn = (y: number, label: string, color: number, cb: () => void) => {
+      const btn = this.add.rectangle(W / 2, y, 220, 44, color).setOrigin(0.5).setInteractive()
+      const txt = this.add.text(W / 2, y, label, btnStyle).setOrigin(0.5)
+      btn.on('pointerover',  () => btn.setAlpha(0.8))
+      btn.on('pointerout',   () => btn.setAlpha(1))
+      btn.on('pointerdown',  cb)
+      return [btn, txt]
+    }
+
+    const resumeObjs  = makeBtn(110, 'Resume',    0x44ff88, () => this.resumeGame())
+    const restartObjs = makeBtn(165, 'Restart',   0xffdd00, () => { this.scene.restart() })
+    const menuObjs    = makeBtn(220, 'Main Menu', 0xff6644, () => { this.scene.stop(); goToMenu() })
+
+    this.pauseOverlay = this.add.container(cx - W / 2, cy - H / 2, [
+      bg, title, ...resumeObjs, ...restartObjs, ...menuObjs,
+    ]).setDepth(100)
+  }
+
+  private resumeGame() {
+    this.paused = false
+    this.raceStartTime = this.time.now - this.pausedElapsed
+    this.sfx.start()
+    this.pauseOverlay?.destroy()
+    this.pauseOverlay = null
   }
 
   private startCountdown() {
@@ -107,7 +172,7 @@ export class RaceScene extends Phaser.Scene {
     const cy = this.scale.height / 2
 
     const colors  = ['#ff4444', '#ffcc00', '#44ff44', '#ffd700']
-    const sizes   = ['160px',   '160px',   '160px',   '220px'  ]
+    const sizes   = ['160px',   '160px',   '160px',   '320px'  ]
     const steps   = ['3',       '2',       '1',       'GO!'    ]
     let step = 0
 
@@ -128,6 +193,12 @@ export class RaceScene extends Phaser.Scene {
         duration: 700,
         ease: 'Back.Out',
       })
+
+      if (step < 3) {
+        this.sfx.playCountdownBeep()
+      } else {
+        this.sfx.playCountdownGo()
+      }
 
       step++
       if (step < steps.length) {
@@ -152,9 +223,11 @@ export class RaceScene extends Phaser.Scene {
 
     // Mowed grass stripes
     const stripeH = 30
-    for (let y = 0; y < 750; y += stripeH) {
+    const W = this.scale.width
+    const H = this.scale.height
+    for (let y = 0; y < H; y += stripeH) {
       g.fillStyle(Math.floor(y / stripeH) % 2 === 0 ? 0x2d6e22 : 0x347a28)
-      g.fillRect(0, y, 1100, stripeH)
+      g.fillRect(0, y, W, stripeH)
     }
 
     // Road surface
@@ -403,6 +476,7 @@ export class RaceScene extends Phaser.Scene {
     this.car.setScale(0.65)
     this.car.setDepth(10)
     this.carAngle = -90
+    this.car.setRotation(Phaser.Math.DegToRad(this.carAngle))
   }
 
   // ── HUD ───────────────────────────────────────────────────────
@@ -430,7 +504,7 @@ export class RaceScene extends Phaser.Scene {
   // ── Game loop ─────────────────────────────────────────────────
 
   update(_time: number, delta: number) {
-    if (this.countdownActive) return
+    if (this.countdownActive || this.paused) return
 
     const { steer, throttle, brake } = this.readInput()
     this.applyInput(steer, throttle, brake)
@@ -457,7 +531,7 @@ export class RaceScene extends Phaser.Scene {
 
   /**
    * Applies acceleration, braking, and steering based on input and current speed.
-   * Off-road reduces acceleration by GRASS_ACCEL_PENALTY. Steering is reversed in reverse gear.
+   * Off-road reduces acceleration by grassAccelPenalty. Steering is reversed in reverse gear.
    * @param steer -1 (left) to 1 (right)
    * @param throttle 0 to 1
    * @param brake 0 to 1
@@ -478,6 +552,11 @@ export class RaceScene extends Phaser.Scene {
     if (Math.abs(this.speed) > this.minSpeedToTurn) {
       const direction = this.speed > 0 ? 1 : -1
       this.carAngle += steer * this.turnSpeed * direction
+
+      // Cornering slowdown: harder the turn, more speed is bled off
+      if (Math.abs(steer) > 0.1) {
+        this.speed *= 1 - Math.abs(steer) * this.corneringSlowdown
+      }
     }
   }
 
@@ -495,10 +574,10 @@ export class RaceScene extends Phaser.Scene {
    * Resolves collisions with the outer and inner track boundaries.
    *
    * When the car leaves the track, two things happen:
-   *   1. Speed is reversed and damped by BOUNCE_DAMPING (simulates an inelastic wall hit).
+   *   1. Speed is reversed and damped by bounceDamping (simulates an inelastic wall hit).
    *   2. The car is pushed back onto the track along the ellipse surface normal,
-   *      WALL_PUSH_STEP pixels per iteration, until it is fully inside the boundary
-   *      or WALL_PUSH_MAX_ITERS is reached (prevents infinite loops on deep penetration).
+   *      wallPushStep pixels per iteration, until it is fully inside the boundary
+   *      or wallPushMaxIters is reached (prevents infinite loops on deep penetration).
    *
    * The push direction is derived from the ellipse gradient ∇f = (dx/a², dy/b²),
    * which points perpendicular to the ellipse surface — more accurate than a plain
@@ -550,7 +629,7 @@ export class RaceScene extends Phaser.Scene {
       const passed = this.nextCheckpoint
       const total = this.checkpoints.length
       this.checkpointText.setText(`CP ${passed}/${total} ✓`).setAlpha(1)
-      this.time.delayedCall(1800, () => {
+      this.time.delayedCall(this.cpTextDuration, () => {
         if (this.checkpointText?.active) this.checkpointText.setAlpha(0)
       })
     }
@@ -569,19 +648,19 @@ export class RaceScene extends Phaser.Scene {
     const finishTop = OUTER.cy - OUTER.b
     const finishBottom = OUTER.cy - INNER.b
 
-    if (x > OUTER.cx - 25 && x < OUTER.cx + 25 && y > finishTop && y < finishBottom && this.speed > 0) {
+    if (x > OUTER.cx - this.finishZoneHalfWidth && x < OUTER.cx + this.finishZoneHalfWidth && y > finishTop && y < finishBottom && this.speed > 0) {
       if (this.nextCheckpoint < this.checkpoints.length) return
       this.nextCheckpoint = 0
       this.lapCount++
       gameStore.currentLap = this.lapCount
-      this.finishCooldown = 2000
+      this.finishCooldown = this.lapCooldown
 
       if (this.lapCount >= gameStore.totalLaps) {
         this.raceFinished = true
         this.sfx.playRaceFinish()
         this.sfx.stop()
         const totalTime = this.time.now - this.raceStartTime
-        this.time.delayedCall(1200, () => {
+        this.time.delayedCall(this.gameoverDelay, () => {
           finishRace(totalTime)
           this.scene.stop()
         })
