@@ -1,89 +1,157 @@
-# racing
-Simulation de course  en automonile en 2D (vue de dessus) avec un mode 'Time-Attack'. Gestion de la physique de conduite (collisions, friction) et système de chronométrage avec sauvegarde locale des records. Interface réactive pour le suivi des performances.
+# 🏎️ Racing Game
 
-# Cahier des charges — Projet libre
+A top-down 2D racing game built with **Phaser 3**, **Vue 3**, and **TypeScript**.  
+Complete 3 laps as fast as possible and beat your best time!
 
-## 1. Informations générales
+---
 
-- **Nom du projet**       : Racing 
-- **Membres de l'équipe** : [Koray AKGUL], [Adrien MARCUARD][Jonatan PERRET]
-- **Lien du dépôt Git**   : *[Racing 2D Simulation](https://github.com/korayadige/racing)*
+## Technologies
 
-## 2. Description du projet
+| Technology | Role |
+|------------|------|
+| [Phaser 3](https://phaser.io/) | 2D game engine — track, car physics, rendering |
+| [Vue 3](https://vuejs.org/) | UI framework — menu, HUD, game over screen |
+| TypeScript | Type safety across the whole project |
+| Tailwind CSS | UI styling |
+| Web Audio API | Procedural sound effects (engine, screech, hit, melodies) |
+| Gamepad API | Controller support (Xbox, PlayStation, generic) |
 
-Nous développons un jeu de course en vue de dessus (top-down 2D) jouable
-directement dans le navigateur. L'idée est de réaliser quelques tours de piste
-le plus rapidement possible, avec un classement des meilleurs temps sauvegardé
-localement. Ce projet nous permet d'explorer l'intégration d'un moteur de jeu
-dans une application web moderne.
+---
 
-## 3. Objectifs
+## Prerequisites
 
-- Permettre à un·e utilisateur·rice de conduire une voiture sur un circuit et
-  de compléter des tours.
-- Offrir un retour immédiat sur la performance via un chronomètre et un
-  classement local.
-- Proposer une expérience jouable au clavier, et si possible à la manette.
+You need **Node.js v18 or higher** installed on your machine.
 
-## 4. Fonctionnalités
+- Download: https://nodejs.org — choose the **LTS** version
+- Verify your installation:
 
-### 4.1 Principales
-
-- Déplacement du véhicule sur un circuit oval avec physique de base
-  (accélération, freinage, virage).
-- Comptage des tours et chronomètre.
-- Détection des sorties de route (herbe) et des collisions avec les murs.
-- Écran de menu (saisie du pseudo), écran de jeu, écran de fin de course.
-- Classement des 10 meilleurs temps, stocké en local.
-
-### 4.2 Optionnelles
-
-- Support manette (Xbox / PlayStation) via l'API Gamepad — nous essayons de
-  l'intégrer, mais cela reste secondaire.
-- Effets sonores générés procéduralement (moteur, crissement, collision).
-- Animations ou retours visuels supplémentaires (fumée, flash de collision…).
-
-## 5. Technologies
-
-- **Frontend / moteur de jeu** : Phaser 3 — moteur 2D bien documenté, adapté
-  aux jeux navigateur sans backend.
-- **UI** : Vue 3 + Tailwind CSS — pour les écrans hors jeu (menu, résultats)
-  avec un état réactif partagé.
-- **Langage** : TypeScript — typage statique pour limiter les erreurs sur un
-  projet multi-fichiers.
-- **Audio** : Web Audio API — génération de sons directement dans le
-  navigateur, sans fichiers externes.
-- **Build** : Vite — bundler rapide, compatible avec Phaser et Vue.
-- **Backend / BDD** : aucun — tout fonctionne côté client, les données sont
-  stockées dans `localStorage`.
-
-## 6. Architecture
-
-L'application est entièrement côté client, sans serveur.
-
-```
-Navigateur
-├── Vue 3 (UI)
-│   ├── MenuScreen      → Saisie du pseudo, affichage du classement
-│   ├── GameScreen      → Conteneur du canvas Phaser
-│   └── GameOverScreen  → Résultats + bouton rejouer
-├── Phaser 3 (Moteur)
-│   ├── BootScene       → Chargement des assets
-│   └── RaceScene       → Logique de course, physique, HUD
-└── Stores (Pinia/Réactif)
-    └── gameStore       → État partagé (nom, état, temps, classement)
+```bash
+node --version   # should print v18.x or higher
+npm --version    # should print 9.x or higher
 ```
 
+---
 
-Vue et Phaser communiquent via un store réactif commun. Pas de communication
-réseau — tout reste dans le navigateur.
+## Installation & Running
 
-## 7. Évolutions possibles
+### 1. Get the source code
 
-- Plusieurs circuits différents.
-- Mode multijoueur local (écran partagé ou tour par tour).
-- Voitures adversaires contrôlées par l'IA.
-- Sauvegarde des scores en ligne (nécessiterait un backend).
+**Option A — Clone with Git:**
+```bash
+git clone <repository-url>
+cd racing-game
+```
 
+**Option B — Download ZIP:**  
+Click the green **"Code"** button on GitHub → **"Download ZIP"** → extract the folder → open a terminal inside it.
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+Downloads all required libraries (~70 MB). Only needed once.
+
+### 3. Start the development server
+
+```bash
+npm run dev
+```
+
+Then open your browser at:
+```
+http://localhost:5173
+```
+
+---
+
+## How to Play
+
+### Keyboard controls
+
+| Key | Action |
+|-----|--------|
+| `↑` Arrow Up | Accelerate |
+| `↓` Arrow Down | Brake / Reverse |
+| `←` Arrow Left | Steer left |
+| `→` Arrow Right | Steer right |
+
+### Gamepad controls (Xbox / PlayStation / Generic)
+
+| Input | Action |
+|-------|--------|
+| Left stick X axis | Steer (analog) |
+| Left stick Y axis | Accelerate / Brake |
+| RT / R2 trigger | Accelerate (analog) |
+| LT / L2 trigger | Brake (analog) |
+| D-pad ↑ / ↓ | Accelerate / Brake |
+| D-pad ← / → | Steer |
+
+> A connected gamepad is detected automatically and takes priority over the keyboard.  
+> The HUD shows the controller name when detected.
+
+### Rules
+
+- Drive around the oval track and cross the **checkered finish line** to count a lap.
+- **Driving on grass** reduces your acceleration significantly — stay on the road.
+- **Hitting a wall** bounces you back and cuts your speed.
+- Finish **3 laps** — your total time is saved to the leaderboard.
+- Top 10 best times are stored locally in your browser.
+
+---
+
+## Production Build
+
+To generate an optimized static build:
+
+```bash
+npm run build
+```
+
+Output goes into the `dist/` folder. Preview it locally with:
+
+```bash
+npm run preview
+```
+
+Or deploy `dist/` to any static host (Vercel, Netlify, GitHub Pages).
+
+---
+
+## Project Structure
 
 ```
+src/
+├── game/
+│   ├── scenes/
+│   │   ├── BootScene.ts       # Asset loading
+│   │   └── RaceScene.ts       # Track, car physics, HUD
+│   ├── GamepadManager.ts      # Gamepad API polling & deadzone
+│   ├── PhaserGame.ts          # Phaser configuration
+│   └── SoundManager.ts        # Web Audio API sound synthesis
+├── stores/
+│   └── gameStore.ts           # Shared reactive state (Vue ↔ Phaser)
+├── components/
+│   ├── MenuScreen.vue          # Name input + leaderboard
+│   ├── GameScreen.vue          # Phaser canvas wrapper
+│   └── GameOverScreen.vue      # Results + replay button
+└── App.vue                     # Screen router
+```
+
+---
+
+## Team & Work Distribution
+
+| Name | Responsibilities |
+|------|-----------------|
+| Developer A | Phaser scenes, car physics, track design, collision |
+| Developer B | Vue UI screens, Gamepad API integration, Web Audio API sounds |
+
+---
+
+## Known Limitations
+
+- Single track, single player only.
+- Best times are stored in `localStorage` — clearing browser data resets the leaderboard.
+- Audio requires a user interaction to start (browser policy) — clicking **START** triggers it automatically.
