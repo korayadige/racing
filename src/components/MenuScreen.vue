@@ -8,7 +8,7 @@
       <input
         v-model="playerName"
         type="text"
-        placeholder="İsminizi girin..."
+        placeholder="Enter your name..."
         maxlength="20"
         class="px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/40 text-lg outline-none focus:border-yellow-400 transition"
         @keyup.enter="handleStart"
@@ -17,12 +17,12 @@
         class="px-6 py-3 bg-yellow-400 text-black font-bold rounded-lg text-xl hover:bg-yellow-300 active:scale-95 transition"
         @click="handleStart"
       >
-        BAŞLA
+        START
       </button>
     </div>
 
     <div v-if="bestTimes.length" class="mt-4 w-80">
-      <h2 class="text-xl font-semibold text-white/70 mb-3 text-center">En İyi Süreler</h2>
+      <h2 class="text-xl font-semibold text-white/70 mb-3 text-center">Best Times</h2>
       <div
         v-for="(record, i) in bestTimes"
         :key="i"

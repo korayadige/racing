@@ -21,12 +21,12 @@ export const gameStore = reactive<GameState>({
   playerName: '',
   currentLap: 0,
   totalLaps: 3,
-  bestTimes: JSON.parse(localStorage.getItem('racing-best-times') ?? '[]'),
+  bestTimes: (() => { try { return JSON.parse(localStorage.getItem('racing-best-times') ?? '[]') } catch { return [] } })(),
   lastRaceTime: 0,
 })
 
 export function startGame(name: string) {
-  gameStore.playerName = name || 'Anonim'
+  gameStore.playerName = name || 'Anonymous'
   gameStore.currentLap = 0
   gameStore.screen = 'game'
 }
