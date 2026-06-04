@@ -68,6 +68,7 @@ export class RaceScene extends Phaser.Scene {
   private gamepadText!: Phaser.GameObjects.Text
   private finishCooldown = 3000
   private raceFinished = false
+<<<<<<< HEAD
   private countdownActive = true
 
   /** Left, bottom, and right gates — must all be passed in order before a lap counts. */
@@ -75,6 +76,14 @@ export class RaceScene extends Phaser.Scene {
     { x: 173, y: 375 },
     { x: 550, y: 613 },
     { x: 927, y: 375 },
+=======
+
+  /** Right, bottom, and left gates — must all be passed in order before a lap counts. */
+  private readonly checkpoints = [
+    { x: 927, y: 375 },
+    { x: 550, y: 613 },
+    { x: 173, y: 375 },
+>>>>>>> 38d2bda26f63837b59afa8fac4ccd808dd6607d4
   ] as const
   private readonly cpRadius = 55
   private nextCheckpoint = 0
@@ -90,11 +99,16 @@ export class RaceScene extends Phaser.Scene {
     this.createCar()
     this.createHUD()
     this.cursors = this.input.keyboard!.createCursorKeys()
+<<<<<<< HEAD
+=======
+    this.raceStartTime = this.time.now
+>>>>>>> 38d2bda26f63837b59afa8fac4ccd808dd6607d4
     this.lapCount = 0
     this.nextCheckpoint = 0
     gameStore.currentLap = 0
 
     this.sfx = new SoundManager()
+<<<<<<< HEAD
     this.gamepad = new GamepadManager()
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.sfx.destroy())
@@ -143,6 +157,12 @@ export class RaceScene extends Phaser.Scene {
     }
 
     tick()
+=======
+    this.sfx.start()
+    this.gamepad = new GamepadManager()
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.sfx.destroy())
+>>>>>>> 38d2bda26f63837b59afa8fac4ccd808dd6607d4
   }
 
   // ── Track drawing ──────────────────────────────────────────────
@@ -326,9 +346,15 @@ export class RaceScene extends Phaser.Scene {
     g.beginPath(); g.moveTo(65,  375);  g.lineTo(280, 375);  g.strokePath() // left gate
 
     const labelStyle = { fontSize: '13px', color: '#00ddff', backgroundColor: '#00000088', padding: { x: 3, y: 1 } }
+<<<<<<< HEAD
     this.add.text(20,   368, 'CP1', labelStyle).setDepth(5)
     this.add.text(554,  688, 'CP2', labelStyle).setDepth(5)
     this.add.text(1038, 368, 'CP3', labelStyle).setDepth(5)
+=======
+    this.add.text(1038, 368, 'CP1', labelStyle).setDepth(5)
+    this.add.text(554,  688, 'CP2', labelStyle).setDepth(5)
+    this.add.text(20,   368, 'CP3', labelStyle).setDepth(5)
+>>>>>>> 38d2bda26f63837b59afa8fac4ccd808dd6607d4
   }
 
   // ── Car ───────────────────────────────────────────────────────
@@ -402,7 +428,11 @@ export class RaceScene extends Phaser.Scene {
     this.car = this.add.sprite(OUTER.cx, OUTER.cy - OUTER.b + 55, 'car')
     this.car.setScale(0.65)
     this.car.setDepth(10)
+<<<<<<< HEAD
     this.carAngle = -90
+=======
+    this.carAngle = 0
+>>>>>>> 38d2bda26f63837b59afa8fac4ccd808dd6607d4
   }
 
   // ── HUD ───────────────────────────────────────────────────────
@@ -430,8 +460,11 @@ export class RaceScene extends Phaser.Scene {
   // ── Game loop ─────────────────────────────────────────────────
 
   update(_time: number, delta: number) {
+<<<<<<< HEAD
     if (this.countdownActive) return
 
+=======
+>>>>>>> 38d2bda26f63837b59afa8fac4ccd808dd6607d4
     const { steer, throttle, brake } = this.readInput()
     this.applyInput(steer, throttle, brake)
     this.moveCar()
