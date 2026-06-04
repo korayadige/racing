@@ -12,27 +12,27 @@ export class RaceScene extends Phaser.Scene {
   private car!: Phaser.GameObjects.Sprite
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
 
-  // ── Physics constants ─────────────────────────────────────────
+  // ── Physics constants ─────────────────────────────────────────//
   private readonly maxSpeed            = 7
-  private readonly acceleration        = 0.24
-  private readonly friction            = 0.94
-  private readonly turnSpeed           = 3.2
-  private readonly grassAccelPenalty   = 0.65
+  private readonly acceleration        = 0.15
+  private readonly friction            = 0.90
+  private readonly turnSpeed           = 3.0
+  private readonly grassAccelPenalty   = 0.75
   private readonly minSpeedToTurn      = 0.2
-  private readonly corneringSlowdown   = 0.018  // speed loss per frame when steering hard
+  private readonly corneringSlowdown   = 0.25  // speed loss per frame when steering hard
   private readonly reverseSpeedDivider = 2
   private readonly bounceDamping       = 0.3    // fraction of speed retained (inverted) after wall impact
   private readonly wallPushStep        = 3      // pixels pushed per iteration when resolving overlap
-  private readonly wallPushMaxIters    = 20     // safety cap to prevent infinite loop on deep penetration
+  private readonly wallPushMaxIters    = 25     // safety cap to prevent infinite loop on deep penetration
 
-  // ── Timing constants ──────────────────────────────────────────
+  // ── Timing constants ──────────────────────────────────────────//
   private readonly initialFinishCooldown = 3000
   private readonly lapCooldown           = 2000
   private readonly gameoverDelay         = 1200
-  private readonly cpTextDuration        = 1800
+  private readonly cpTextDuration        = 2000
   private readonly finishZoneHalfWidth   = 25
 
-  // ── Checkpoint config ─────────────────────────────────────────
+  // ── Checkpoint config ─────────────────────────────────────────//
   /** Left, bottom, and right gates — must all be passed in order before a lap counts. */
   private readonly checkpoints = [
     { x: 173, y: 375 },
@@ -41,7 +41,7 @@ export class RaceScene extends Phaser.Scene {
   ] as const
   private readonly cpRadius = 55
 
-  // ── Mutable state ─────────────────────────────────────────────
+  // ── Mutable state ─────────────────────────────────────────────//
   private speed           = 0
   private carAngle        = 0
   private lapCount        = 0
@@ -53,7 +53,7 @@ export class RaceScene extends Phaser.Scene {
   private paused          = false
   private pausedElapsed   = 0
 
-  // ── Subsystems ────────────────────────────────────────────────
+  // ── Subsystems ────────────────────────────────────────────────//
   private sfx!: SoundManager
   private gamepad!: GamepadManager
   private hud!: HUD
@@ -72,7 +72,7 @@ export class RaceScene extends Phaser.Scene {
 
     // Reset all mutable state so scene.restart() works correctly
     this.speed           = 0
-    this.carAngle        = -90
+    this.carAngle        = -90 // start facing up
     this.lapCount        = 0
     this.nextCheckpoint  = 0
     this.finishCooldown  = this.initialFinishCooldown
@@ -97,7 +97,7 @@ export class RaceScene extends Phaser.Scene {
     })
   }
 
-  // ── Pause ─────────────────────────────────────────────────────
+  // ── Pause ─────────────────────────────────────────────────────//
 
   private togglePause() {
     if (this.countdownActive || this.raceFinished) return
@@ -118,7 +118,7 @@ export class RaceScene extends Phaser.Scene {
     }
   }
 
-  // ── Game loop ─────────────────────────────────────────────────
+  // ── Game loop ─────────────────────────────────────────────────//
 
   update(_time: number, delta: number) {
     if (this.countdownActive || this.paused) return
@@ -138,7 +138,7 @@ export class RaceScene extends Phaser.Scene {
     })
   }
 
-  // ── Input ─────────────────────────────────────────────────────
+  // ── Input ─────────────────────────────────────────────────────//
 
   /**
    * Reads input from keyboard and gamepad. Gamepad takes priority when connected.
@@ -295,7 +295,7 @@ export class RaceScene extends Phaser.Scene {
     }
   }
 
-  // ── Car setup ─────────────────────────────────────────────────
+  // ── Car setup ─────────────────────────────────────────────────//
 
   private generateCarTexture() {
     const W = 48
