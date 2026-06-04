@@ -50,9 +50,12 @@ export class RaceScene extends Phaser.Scene {
   private readonly acceleration = 0.28
   private readonly friction = 0.94
   private readonly turnSpeed = 3.2
-  private readonly GRASS_ACCEL_PENALTY = 0.65
-  private readonly MIN_SPEED_TO_TURN = 0.2
-  private readonly REVERSE_SPEED_DIVIDER = 2
+  private readonly grassAccelPenalty = 0.65
+  private readonly minSpeedToTurn = 0.2
+  private readonly reverseSpeedDivider = 2
+  private readonly bounceDamping = 0.3      // fraction of speed retained (inverted) after wall impact
+  private readonly wallPushStep = 3         // pixels pushed per iteration when resolving overlap
+  private readonly wallPushMaxIters = 20    // safety cap to prevent infinite loop on deep penetration
 
   private lapCount = 0
   private raceStartTime = 0
@@ -67,12 +70,12 @@ export class RaceScene extends Phaser.Scene {
   private raceFinished = false
 
   /** Right, bottom, and left gates — must all be passed in order before a lap counts. */
-  private readonly CHECKPOINTS = [
+  private readonly checkpoints = [
     { x: 927, y: 375 },
     { x: 550, y: 613 },
     { x: 173, y: 375 },
   ] as const
-  private readonly CP_RADIUS = 55
+  private readonly cpRadius = 55
   private nextCheckpoint = 0
   private checkpointText!: Phaser.GameObjects.Text
 
@@ -415,18 +418,18 @@ export class RaceScene extends Phaser.Scene {
    */
   private applyInput(steer: number, throttle: number, brake: number) {
     const onRoad = isOnTrack(this.car.x, this.car.y)
-    const accel = onRoad ? this.acceleration : this.acceleration * this.GRASS_ACCEL_PENALTY
+    const accel = onRoad ? this.acceleration : this.acceleration * this.grassAccelPenalty
 
     if (throttle > 0) {
       this.speed = Math.min(this.speed + accel * throttle, this.maxSpeed)
     } else if (brake > 0) {
-      const maxReverseSpeed = -(this.maxSpeed / this.REVERSE_SPEED_DIVIDER)
+      const maxReverseSpeed = -(this.maxSpeed / this.reverseSpeedDivider)
       this.speed = Math.max(this.speed - accel * brake, maxReverseSpeed)
     } else {
       this.speed *= this.friction
     }
 
-    if (Math.abs(this.speed) > this.MIN_SPEED_TO_TURN) {
+    if (Math.abs(this.speed) > this.minSpeedToTurn) {
       const direction = this.speed > 0 ? 1 : -1
       this.carAngle += steer * this.turnSpeed * direction
     }
@@ -443,34 +446,44 @@ export class RaceScene extends Phaser.Scene {
   }
 
   /**
-   * Checks track boundaries and bounces the car back if it leaves the track.
-   * Uses ellipse surface normals for accurate push direction, iterating until the car is back on track.
+   * Resolves collisions with the outer and inner track boundaries.
+   *
+   * When the car leaves the track, two things happen:
+   *   1. Speed is reversed and damped by BOUNCE_DAMPING (simulates an inelastic wall hit).
+   *   2. The car is pushed back onto the track along the ellipse surface normal,
+   *      WALL_PUSH_STEP pixels per iteration, until it is fully inside the boundary
+   *      or WALL_PUSH_MAX_ITERS is reached (prevents infinite loops on deep penetration).
+   *
+   * The push direction is derived from the ellipse gradient ∇f = (dx/a², dy/b²),
+   * which points perpendicular to the ellipse surface — more accurate than a plain
+   * center-to-point vector for non-circular ellipses.
+   *
+   * A collision sound is played only when the car is moving fast enough to be noticeable.
    */
   private applyTrackPhysics() {
     if (ellipseValue(this.car.x, this.car.y, OUTER) > 1) {
       if (Math.abs(this.speed) > 1) this.sfx.playHit()
-      this.speed *= -0.3
-      // Ellipse surface normal: gradient of (dx/a²)² + (dy/b²)² = 1
+      this.speed *= -this.bounceDamping
       const nx = (this.car.x - OUTER.cx) / (OUTER.a * OUTER.a)
       const ny = (this.car.y - OUTER.cy) / (OUTER.b * OUTER.b)
       const len = Math.sqrt(nx * nx + ny * ny)
       let iters = 0
-      while (ellipseValue(this.car.x, this.car.y, OUTER) > 1 && iters++ < 20) {
-        this.car.x -= (nx / len) * 3
-        this.car.y -= (ny / len) * 3
+      while (ellipseValue(this.car.x, this.car.y, OUTER) > 1 && iters++ < this.wallPushMaxIters) {
+        this.car.x -= (nx / len) * this.wallPushStep
+        this.car.y -= (ny / len) * this.wallPushStep
       }
     }
 
     if (ellipseValue(this.car.x, this.car.y, INNER) < 1) {
       if (Math.abs(this.speed) > 1) this.sfx.playHit()
-      this.speed *= -0.3
+      this.speed *= -this.bounceDamping
       const nx = (this.car.x - INNER.cx) / (INNER.a * INNER.a)
       const ny = (this.car.y - INNER.cy) / (INNER.b * INNER.b)
       const len = Math.sqrt(nx * nx + ny * ny)
       let iters = 0
-      while (ellipseValue(this.car.x, this.car.y, INNER) < 1 && iters++ < 20) {
-        this.car.x += (nx / len) * 3
-        this.car.y += (ny / len) * 3
+      while (ellipseValue(this.car.x, this.car.y, INNER) < 1 && iters++ < this.wallPushMaxIters) {
+        this.car.x += (nx / len) * this.wallPushStep
+        this.car.y += (ny / len) * this.wallPushStep
       }
     }
   }
@@ -480,16 +493,16 @@ export class RaceScene extends Phaser.Scene {
    * Shows a brief HUD notification on each pass.
    */
   private checkCheckpoints() {
-    if (this.nextCheckpoint >= this.CHECKPOINTS.length) return
+    if (this.nextCheckpoint >= this.checkpoints.length) return
 
-    const cp = this.CHECKPOINTS[this.nextCheckpoint]
+    const cp = this.checkpoints[this.nextCheckpoint]
     const dx = this.car.x - cp.x
     const dy = this.car.y - cp.y
 
-    if (Math.sqrt(dx * dx + dy * dy) < this.CP_RADIUS) {
+    if (Math.sqrt(dx * dx + dy * dy) < this.cpRadius) {
       this.nextCheckpoint++
       const passed = this.nextCheckpoint
-      const total = this.CHECKPOINTS.length
+      const total = this.checkpoints.length
       this.checkpointText.setText(`CP ${passed}/${total} ✓`).setAlpha(1)
       this.time.delayedCall(1800, () => {
         if (this.checkpointText?.active) this.checkpointText.setAlpha(0)
@@ -511,7 +524,7 @@ export class RaceScene extends Phaser.Scene {
     const finishBottom = OUTER.cy - INNER.b
 
     if (x > OUTER.cx - 25 && x < OUTER.cx + 25 && y > finishTop && y < finishBottom && this.speed > 0) {
-      if (this.nextCheckpoint < this.CHECKPOINTS.length) return
+      if (this.nextCheckpoint < this.checkpoints.length) return
       this.nextCheckpoint = 0
       this.lapCount++
       gameStore.currentLap = this.lapCount
