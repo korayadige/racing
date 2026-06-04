@@ -21,7 +21,7 @@ export const gameStore = reactive<GameState>({
   playerName: '',
   currentLap: 0,
   totalLaps: 3,
-  bestTimes: (() => { try { return JSON.parse(localStorage.getItem('racing-best-times') ?? '[]') } catch { return [] } })(),
+  bestTimes: (() => { try { const d = JSON.parse(localStorage.getItem('racing-best-times') ?? '[]'); return Array.isArray(d) ? d : [] } catch { return [] } })(),
   lastRaceTime: 0,
 })
 
