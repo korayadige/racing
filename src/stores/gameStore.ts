@@ -45,8 +45,20 @@ export function goToMenu() {
 }
 
 export function formatTime(ms: number): string {
-  const minutes = Math.floor(ms / 60000)
-  const seconds = Math.floor((ms % 60000) / 1000)
-  const centiseconds = Math.floor((ms % 1000) / 10)
-  return `${minutes}:${String(seconds).padStart(2, '0')}.${String(centiseconds).padStart(2, '0')}`
+ 
+  const MS_PER_SECOND = 1000       // 1 second = 1000 ms
+  const MS_PER_MINUTE = 60000      // 1 min = 60  * 1000 ms = 60.000 ms
+  const MS_PER_CENTISECOND = 10    // 1 centisecond  = 10 ms
+
+  const minutes = Math.floor(ms / MS_PER_MINUTE)
+  const seconds = Math.floor((ms % MS_PER_MINUTE) / MS_PER_SECOND)
+  const centiseconds = Math.floor((ms % MS_PER_SECOND) / MS_PER_CENTISECOND)
+  
+  // String Padding
+  // for example 7 to "07"
+  const paddedSeconds = String(seconds).padStart(2, '0')
+  const paddedCentiseconds = String(centiseconds).padStart(2, '0')
+  
+  // template: "1:15.42"
+  return `${minutes}:${paddedSeconds}.${paddedCentiseconds}`
 }
