@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col items-center justify-center min-h-screen gap-6">
-    <h1 class="text-5xl font-bold text-green-400">YARIŞI BİTİRDİN!</h1>
+    <h1 class="text-5xl font-bold text-green-400">RACE FINISHED!</h1>
 
     <div class="text-center">
       <p class="text-white/60 text-lg">{{ gameStore.playerName }}</p>
@@ -8,7 +8,7 @@
     </div>
 
     <div v-if="rank !== null" class="text-white/50">
-      Sıralaman: <span class="text-white font-bold">#{{ rank }}</span>
+      Your rank: <span class="text-white font-bold">#{{ rank }}</span>
     </div>
 
     <div class="flex gap-4 mt-4">
@@ -16,13 +16,13 @@
         class="px-6 py-3 bg-yellow-400 text-black font-bold rounded-lg text-lg hover:bg-yellow-300 active:scale-95 transition"
         @click="playAgain"
       >
-        Tekrar Oyna
+        Play Again
       </button>
       <button
         class="px-6 py-3 bg-white/10 text-white rounded-lg text-lg hover:bg-white/20 active:scale-95 transition"
-        @click="goMenu"
+        @click="goToMenu"
       >
-        Ana Menü
+        Main Menu
       </button>
     </div>
   </div>
@@ -39,9 +39,5 @@ const rank = computed(() => {
 
 function playAgain() {
   startGame(gameStore.playerName)
-}
-
-function goMenu() {
-  goToMenu()
 }
 </script>

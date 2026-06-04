@@ -37,11 +37,10 @@ export class RaceScene extends Phaser.Scene {
   private finishCooldown = 3000
   private raceFinished = false
 
-  // Checkpoint sistemi — pistin sağ, alt ve sol noktaları
   private readonly CHECKPOINTS = [
-    { x: 927, y: 375 },  // sağ
-    { x: 550, y: 613 },  // alt
-    { x: 173, y: 375 },  // sol
+    { x: 927, y: 375 },
+    { x: 550, y: 613 },
+    { x: 173, y: 375 },
   ] as const
   private readonly CP_RADIUS = 55
   private nextCheckpoint = 0
@@ -344,10 +343,10 @@ export class RaceScene extends Phaser.Scene {
       backgroundColor: '#000000aa',
       padding: { x: 8, y: 4 },
     }
-    this.timerText = this.add.text(10, 10, 'Süre: 0:00.00', style).setDepth(20)
-    this.lapText = this.add.text(10, 40, `Tur: 0 / ${gameStore.totalLaps}`, style).setDepth(20)
-    this.speedText = this.add.text(10, 70, 'Hız: 0', style).setDepth(20)
-    this.gamepadText = this.add.text(10, 100, '🎮 Bağlı değil', {
+    this.timerText = this.add.text(10, 10, 'Time: 0:00.00', style).setDepth(20)
+    this.lapText = this.add.text(10, 40, `Lap: 0 / ${gameStore.totalLaps}`, style).setDepth(20)
+    this.speedText = this.add.text(10, 70, 'Speed: 0', style).setDepth(20)
+    this.gamepadText = this.add.text(10, 100, '🎮 Not connected', {
       ...style,
       color: '#888888',
     }).setDepth(20)
@@ -488,17 +487,17 @@ export class RaceScene extends Phaser.Scene {
       const m = Math.floor(elapsed / 60000)
       const s = Math.floor((elapsed % 60000) / 1000)
       const cs = Math.floor((elapsed % 1000) / 10)
-      this.timerText.setText(`Süre: ${m}:${String(s).padStart(2, '0')}.${String(cs).padStart(2, '0')}`)
+      this.timerText.setText(`Time: ${m}:${String(s).padStart(2, '0')}.${String(cs).padStart(2, '0')}`)
     }
-    this.lapText.setText(`Tur: ${this.lapCount} / ${gameStore.totalLaps}`)
-    this.speedText.setText(`Hız: ${Math.abs(this.speed * 40).toFixed(0)} km/h`)
+    this.lapText.setText(`Lap: ${this.lapCount} / ${gameStore.totalLaps}`)
+    this.speedText.setText(`Speed: ${Math.abs(this.speed * 40).toFixed(0)} km/h`)
 
     if (this.gamepad.isConnected()) {
       const name = this.gamepad.connectedName() ?? ''
       const shortName = name.length > 30 ? name.slice(0, 30) + '…' : name
       this.gamepadText.setColor('#44ff88').setText(`🎮 ${shortName}`)
     } else {
-      this.gamepadText.setColor('#888888').setText('🎮 Bağlı değil')
+      this.gamepadText.setColor('#888888').setText('🎮 Not connected')
     }
 
     this.sfx.updateEngine(this.speed / this.maxSpeed)
