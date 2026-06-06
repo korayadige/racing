@@ -145,8 +145,8 @@ src/
 
 | Name | Responsibilities |
 |------|-----------------|
-| Developer A | Phaser scenes, car physics, track design, collision |
-| Developer B | Vue UI screens, Gamepad API integration, Web Audio API sounds |
+| Koray Akgul | Phaser scenes, car physics, track design, collision |
+| Honatan Perret | Vue UI screens, Gamepad API integration, Web Audio API sounds |
 
 ---
 
