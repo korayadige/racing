@@ -50,7 +50,7 @@ export function renderTrack(scene: Phaser.Scene): void {
 
   // Starting position marker
   g.fillStyle(0xffffff, 0.3)
-  g.fillRect(546, OUTER.cy - OUTER.b + 2, 8, 38)
+  g.fillRect(OUTER.cx - 4, OUTER.cy - OUTER.b + 2, 8, 38)
 }
 
 function drawKerbs(g: Phaser.GameObjects.Graphics): void {
@@ -165,12 +165,17 @@ function drawCheckpointGates(g: Phaser.GameObjects.Graphics, scene: Phaser.Scene
   const color = 0x00ddff
   g.lineStyle(5, color, 0.9)
 
-  g.beginPath(); g.moveTo(820, 375);  g.lineTo(1035, 375); g.strokePath() // right gate
-  g.beginPath(); g.moveTo(550, 540);  g.lineTo(550, 685);  g.strokePath() // bottom gate
-  g.beginPath(); g.moveTo(65,  375);  g.lineTo(280, 375);  g.strokePath() // left gate
+  // Gate positions derived from track ellipse — left, bottom, right
+  const leftX1 = OUTER.cx - OUTER.a;  const leftX2 = OUTER.cx - INNER.a
+  const rightX1 = OUTER.cx + INNER.a; const rightX2 = OUTER.cx + OUTER.a
+  const botY1 = OUTER.cy + INNER.b;   const botY2 = OUTER.cy + OUTER.b
+
+  g.beginPath(); g.moveTo(leftX1,    OUTER.cy); g.lineTo(leftX2,    OUTER.cy); g.strokePath() // left gate
+  g.beginPath(); g.moveTo(OUTER.cx,  botY1);    g.lineTo(OUTER.cx,  botY2);    g.strokePath() // bottom gate
+  g.beginPath(); g.moveTo(rightX1,   OUTER.cy); g.lineTo(rightX2,   OUTER.cy); g.strokePath() // right gate
 
   const labelStyle = { fontSize: '13px', color: '#00ddff', backgroundColor: '#00000088', padding: { x: 3, y: 1 } }
-  scene.add.text(20,   368, 'CP1', labelStyle).setDepth(5)
-  scene.add.text(554,  688, 'CP2', labelStyle).setDepth(5)
-  scene.add.text(1038, 368, 'CP3', labelStyle).setDepth(5)
+  scene.add.text(leftX1 - 30,    OUTER.cy - 7, 'CP1', labelStyle).setDepth(5)
+  scene.add.text(OUTER.cx + 4,   botY2 + 3,    'CP2', labelStyle).setDepth(5)
+  scene.add.text(rightX2 + 3,    OUTER.cy - 7, 'CP3', labelStyle).setDepth(5)
 }

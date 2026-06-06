@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { gameStore } from '../stores/gameStore'
+import { gameStore, formatTime } from '../stores/gameStore'
 import { isOnTrack } from './trackConstants'
 import type { SoundManager } from './SoundManager'
 import type { GamepadManager } from './GamepadManager'
@@ -46,7 +46,7 @@ export class HUD {
     this.lapText       = scene.add.text(10, 40,  `Lap: 0 / ${gameStore.totalLaps}`, style).setDepth(20)
     this.speedText     = scene.add.text(10, 70,  'Speed: 0', style).setDepth(20)
     this.gamepadText   = scene.add.text(10, 100, '🎮 Not connected', { ...style, color: '#888888' }).setDepth(20)
-    this.checkpointText = scene.add.text(10, 130, '', { ...style, color: '#00ddff' }).setDepth(20)
+    this.checkpointText = scene.add.text(10, 130, '', { ...style, color: '#00ddff' }).setDepth(20).setAlpha(0)
   }
 
   /**
@@ -64,11 +64,7 @@ export class HUD {
    */
   update(p: HUDUpdateParams): void {
     if (!p.raceFinished) {
-      const elapsed = this.scene.time.now - p.raceStartTime
-      const m  = Math.floor(elapsed / 60000)
-      const s  = Math.floor((elapsed % 60000) / 1000)
-      const cs = Math.floor((elapsed % 1000) / 10)
-      this.timerText.setText(`Time: ${m}:${String(s).padStart(2, '0')}.${String(cs).padStart(2, '0')}`)
+      this.timerText.setText(`Time: ${formatTime(this.scene.time.now - p.raceStartTime)}`)
     }
 
     this.lapText.setText(`Lap: ${p.lapCount} / ${gameStore.totalLaps}`)

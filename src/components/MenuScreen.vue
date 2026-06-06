@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col items-center justify-center min-h-screen gap-8">
+  <div class="flex flex-col items-center justify-center min-h-screen gap-8 bg-[#1a1a2e]">
     <h1 class="text-6xl font-bold text-yellow-400 tracking-widest drop-shadow-lg">
       🏎️ RACING GAME
     </h1>

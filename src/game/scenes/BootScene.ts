@@ -6,7 +6,7 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload() {
-    // Placeholder: asset yüklemeleri buraya gelecek
+    // Placeholder: asset preloads go here
   }
 
   create() {

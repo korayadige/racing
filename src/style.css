@@ -7,9 +7,10 @@
 }
 
 body {
-  background: #1a1a2e;
+  background: #2d6e22;
   color: #fff;
   font-family: 'Segoe UI', sans-serif;
+  overflow: hidden;
 }
 
 #app {

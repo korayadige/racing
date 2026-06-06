@@ -5,13 +5,13 @@ import { RaceScene } from './scenes/RaceScene'
 export function createPhaserGame(parent: HTMLElement): Phaser.Game {
   return new Phaser.Game({
     type: Phaser.AUTO,
-    width: 1100,
-    height: 750,
     parent,
-    backgroundColor: '#1a1a2e',
-    physics: {
-      default: 'arcade',
-      arcade: { debug: false },
+    backgroundColor: '#2d6e22',
+    scale: {
+      mode: Phaser.Scale.FIT,
+      autoCenter: Phaser.Scale.CENTER_BOTH,
+      width: 1920,
+      height: 900,
     },
     scene: [BootScene, RaceScene],
   })

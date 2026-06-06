@@ -13,13 +13,13 @@ export class RaceScene extends Phaser.Scene {
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
 
   // ── Physics constants ─────────────────────────────────────────//
-  private readonly maxSpeed            = 7
+  private readonly maxSpeed            = 9
   private readonly acceleration        = 0.15
   private readonly friction            = 0.90
   private readonly turnSpeed           = 3.0
   private readonly grassAccelPenalty   = 0.75
   private readonly minSpeedToTurn      = 0.2
-  private readonly corneringSlowdown   = 0.25  // speed loss per frame when steering hard
+  private readonly corneringSlowdown   = 0.03  // speed loss per frame when steering hard
   private readonly reverseSpeedDivider = 2
   private readonly bounceDamping       = 0.3    // fraction of speed retained (inverted) after wall impact
   private readonly wallPushStep        = 3      // pixels pushed per iteration when resolving overlap
@@ -28,18 +28,18 @@ export class RaceScene extends Phaser.Scene {
   // ── Timing constants ──────────────────────────────────────────//
   private readonly initialFinishCooldown = 3000
   private readonly lapCooldown           = 2000
-  private readonly gameoverDelay         = 1200
+  private readonly gameoverDelay         = 600
   private readonly cpTextDuration        = 2000
   private readonly finishZoneHalfWidth   = 25
 
   // ── Checkpoint config ─────────────────────────────────────────//
   /** Left, bottom, and right gates — must all be passed in order before a lap counts. */
   private readonly checkpoints = [
-    { x: 173, y: 375 },
-    { x: 550, y: 613 },
-    { x: 927, y: 375 },
-  ] as const
-  private readonly cpRadius = 55
+    { x: OUTER.cx - (OUTER.a + INNER.a) / 2, y: OUTER.cy },
+    { x: OUTER.cx,                            y: OUTER.cy + (OUTER.b + INNER.b) / 2 },
+    { x: OUTER.cx + (OUTER.a + INNER.a) / 2, y: OUTER.cy },
+  ]
+  private readonly cpRadius = 130
 
   // ── Mutable state ─────────────────────────────────────────────//
   private speed           = 0
@@ -72,8 +72,9 @@ export class RaceScene extends Phaser.Scene {
 
     // Reset all mutable state so scene.restart() works correctly
     this.speed           = 0
-    this.carAngle        = -90 // start facing up
+    this.carAngle        = -90 // start facing left
     this.lapCount        = 0
+    this.raceStartTime   = 0
     this.nextCheckpoint  = 0
     this.finishCooldown  = this.initialFinishCooldown
     this.raceFinished    = false
@@ -211,7 +212,7 @@ export class RaceScene extends Phaser.Scene {
   private applyTrackPhysics() {
     if (ellipseValue(this.car.x, this.car.y, OUTER) > 1) {
       if (Math.abs(this.speed) > 1) this.sfx.playHit()
-      this.speed *= -this.bounceDamping
+      this.speed *= this.bounceDamping
       const nx = (this.car.x - OUTER.cx) / (OUTER.a * OUTER.a)
       const ny = (this.car.y - OUTER.cy) / (OUTER.b * OUTER.b)
       const len = Math.sqrt(nx * nx + ny * ny)
@@ -224,7 +225,7 @@ export class RaceScene extends Phaser.Scene {
 
     if (ellipseValue(this.car.x, this.car.y, INNER) < 1) {
       if (Math.abs(this.speed) > 1) this.sfx.playHit()
-      this.speed *= -this.bounceDamping
+      this.speed *= this.bounceDamping
       const nx = (this.car.x - INNER.cx) / (INNER.a * INNER.a)
       const ny = (this.car.y - INNER.cy) / (INNER.b * INNER.b)
       const len = Math.sqrt(nx * nx + ny * ny)
@@ -236,7 +237,7 @@ export class RaceScene extends Phaser.Scene {
     }
   }
 
-  // ── Checkpoints & lap ─────────────────────────────────────────
+  // ── Checkpoints & lap ─────────────────────────────────────────//
 
   /**
    * Checks if the car has reached the next checkpoint in sequence.
@@ -298,64 +299,100 @@ export class RaceScene extends Phaser.Scene {
   // ── Car setup ─────────────────────────────────────────────────//
 
   private generateCarTexture() {
-    const W = 48
-    const H = 72
+    const W = 58
+    const H = 90
     const g = this.make.graphics({ x: 0, y: 0 })
 
-    g.fillStyle(0x000000, 0.25)
-    g.fillEllipse(W / 2 + 2, H / 2 + 3, W - 8, H - 14)
+    // Drop shadow
+    g.fillStyle(0x000000, 0.22)
+    g.fillEllipse(W / 2 + 3, H / 2 + 5, W - 4, H - 12)
 
-    g.fillStyle(0x1a1a1a)
-    g.fillRoundedRect(3, H - 22, 10, 16, 2)
-    g.fillRoundedRect(W - 13, H - 22, 10, 16, 2)
-    g.fillRoundedRect(3, 8, 10, 16, 2)
-    g.fillRoundedRect(W - 13, 8, 10, 16, 2)
-
-    g.fillStyle(0x555555)
-    g.fillRect(5, 10, 6, 3)
-    g.fillRect(W - 11, 10, 6, 3)
-    g.fillRect(5, H - 20, 6, 3)
-    g.fillRect(W - 11, H - 20, 6, 3)
-
-    g.fillStyle(0xcc1100)
-    g.fillRoundedRect(10, 4, W - 20, H - 8, 6)
-
-    g.fillStyle(0xaa0e00)
-    g.fillRoundedRect(10, 4, 5, H - 8, { tl: 6, bl: 6, tr: 0, br: 0 })
-    g.fillRoundedRect(W - 15, 4, 5, H - 8, { tl: 0, bl: 0, tr: 6, br: 6 })
-
+    // Rear wing (full width, behind body)
     g.fillStyle(0x880c00)
-    g.fillRoundedRect(14, 22, W - 28, 28, 4)
+    g.fillRoundedRect(1, H - 14, W - 2, 10, 3)
+    g.fillStyle(0x660900)
+    g.fillRect(12, H - 14, W - 24, 4)
 
-    g.fillStyle(0x99ddff, 0.85)
-    g.fillRoundedRect(14, 10, W - 28, 14, 3)
+    // Tires
+    g.fillStyle(0x111111)
+    g.fillRoundedRect(2, H - 32, 13, 22, 3)
+    g.fillRoundedRect(W - 15, H - 32, 13, 22, 3)
+    g.fillRoundedRect(2, 12, 13, 20, 3)
+    g.fillRoundedRect(W - 15, 12, 13, 20, 3)
 
-    g.fillStyle(0x336688, 0.5)
-    g.fillRect(14, 10, W - 28, 4)
+    // Wheel rims (dark outer)
+    g.fillStyle(0x444444)
+    g.fillCircle(8,      H - 21, 6)
+    g.fillCircle(W - 8,  H - 21, 6)
+    g.fillCircle(8,      22,     6)
+    g.fillCircle(W - 8,  22,     6)
 
-    g.fillStyle(0x99ddff, 0.65)
-    g.fillRoundedRect(16, 50, W - 32, 10, 2)
+    // Wheel rims (silver inner)
+    g.fillStyle(0xaaaaaa)
+    g.fillCircle(8,      H - 21, 4)
+    g.fillCircle(W - 8,  H - 21, 4)
+    g.fillCircle(8,      22,     4)
+    g.fillCircle(W - 8,  22,     4)
 
+    // Rim center dot
+    g.fillStyle(0x333333)
+    g.fillCircle(8,      H - 21, 1)
+    g.fillCircle(W - 8,  H - 21, 1)
+    g.fillCircle(8,      22,     1)
+    g.fillCircle(W - 8,  22,     1)
+
+    // Front wing (full width)
+    g.fillStyle(0xcc1100)
+    g.fillRoundedRect(1, 6, W - 2, 8, 3)
+
+    // Main body
+    g.fillStyle(0xcc1100)
+    g.fillRoundedRect(13, 4, W - 26, H - 8, 9)
+
+    // Body side panels
+    g.fillStyle(0xaa0e00)
+    g.fillRoundedRect(13, 4, 6, H - 8, { tl: 9, bl: 9, tr: 0, br: 0 })
+    g.fillRoundedRect(W - 19, 4, 6, H - 8, { tl: 0, bl: 0, tr: 9, br: 9 })
+
+    // Cockpit recess
+    g.fillStyle(0x880c00)
+    g.fillRoundedRect(17, 30, W - 34, 32, 6)
+
+    // White racing stripe
+    g.fillStyle(0xffffff, 0.18)
+    g.fillRect(W / 2 - 3, 4, 6, H - 8)
+
+    // Windshield
+    g.fillStyle(0x99ddff, 0.9)
+    g.fillRoundedRect(17, 14, W - 34, 18, 5)
+    g.fillStyle(0x336688, 0.35)
+    g.fillRect(17, 14, W - 34, 6)
+
+    // Rear window
+    g.fillStyle(0x99ddff, 0.7)
+    g.fillRoundedRect(19, 64, W - 38, 10, 3)
+
+    // Headlights
     g.fillStyle(0xffffcc)
-    g.fillRoundedRect(13, 5, 8, 5, 1)
-    g.fillRoundedRect(W - 21, 5, 8, 5, 1)
-
+    g.fillRoundedRect(14, 6, 10, 6, 2)
+    g.fillRoundedRect(W - 24, 6, 10, 6, 2)
     g.fillStyle(0xffffff)
-    g.fillRect(15, 6, 4, 3)
-    g.fillRect(W - 19, 6, 4, 3)
+    g.fillRect(16, 7, 5, 4)
+    g.fillRect(W - 21, 7, 5, 4)
 
+    // Tail lights
     g.fillStyle(0xff2200)
-    g.fillRoundedRect(13, H - 10, 8, 5, 1)
-    g.fillRoundedRect(W - 21, H - 10, 8, 5, 1)
+    g.fillRoundedRect(14, H - 13, 10, 6, 2)
+    g.fillRoundedRect(W - 24, H - 13, 10, 6, 2)
+    g.fillStyle(0xff7755)
+    g.fillRect(16, H - 12, 5, 4)
+    g.fillRect(W - 21, H - 12, 5, 4)
 
-    g.fillStyle(0xff6644)
-    g.fillRect(15, H - 9, 4, 3)
-    g.fillRect(W - 19, H - 9, 4, 3)
-
-    g.lineStyle(1, 0x991100, 0.8)
+    // Hood center line
+    g.lineStyle(1, 0x991100, 0.7)
     g.beginPath()
-    g.moveTo(W / 2, 8)
-    g.lineTo(W / 2, 22)
+    g.moveTo(W / 2, 14)
+    g.lineTo(W / 2, 30)
     g.strokePath()
 
     g.generateTexture('car', W, H)
@@ -363,8 +400,8 @@ export class RaceScene extends Phaser.Scene {
   }
 
   private createCar() {
-    this.car = this.add.sprite(OUTER.cx, OUTER.cy - OUTER.b + 55, 'car')
-    this.car.setScale(0.65)
+    this.car = this.add.sprite(OUTER.cx, OUTER.cy - OUTER.b + 55, 'car') // 55 px inside the top edge, just past the finish line
+    this.car.setScale(0.82)
     this.car.setDepth(10)
     this.carAngle = -90
     this.car.setRotation(Phaser.Math.DegToRad(this.carAngle))
