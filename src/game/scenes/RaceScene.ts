@@ -95,8 +95,8 @@ export class RaceScene extends Phaser.Scene {
 
     this.skidMarks = this.add.renderTexture(0, 0, this.scale.width, this.scale.height).setDepth(5)
     this.skidStamp = new Phaser.GameObjects.Graphics(this)
-    this.skidStamp.fillStyle(0x111111, 0.22)
-    this.skidStamp.fillCircle(0, 0, 5)
+    this.skidStamp.fillStyle(0x666666, 0.8)
+    this.skidStamp.fillCircle(0, 0, 9)
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.sfx.destroy()

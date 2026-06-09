@@ -117,7 +117,7 @@ export class SoundManager {
   /** Call when screeching (hard turn + speed, or on grass) */
   setScreech(active: boolean) {
     if (!this.running) return
-    const target = active ? 0.02 : 0
+    const target = active ? 0.01 : 0
     this.screechGain.gain.setTargetAtTime(target, this.ctx.currentTime, active ? 0.05 : 0.12)
   }
 
