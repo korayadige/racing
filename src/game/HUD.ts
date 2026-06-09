@@ -18,6 +18,10 @@ interface HUDUpdateParams {
   gamepad: GamepadManager
 }
 
+// 1 speed unit ≈ 40 km/h at the chosen physics scale
+const SPEED_KMH_FACTOR    = 40
+const GAMEPAD_NAME_MAX_LEN = 30
+
 /**
  * Owns all in-game overlay text objects and keeps them up to date each frame.
  */
@@ -68,11 +72,13 @@ export class HUD {
     }
 
     this.lapText.setText(`Lap: ${p.lapCount} / ${gameStore.totalLaps}`)
-    this.speedText.setText(`Speed: ${Math.abs(p.speed * 40).toFixed(0)} km/h`)
+    this.speedText.setText(`Speed: ${Math.abs(p.speed * SPEED_KMH_FACTOR).toFixed(0)} km/h`)
 
     if (p.gamepad.isConnected()) {
       const name      = p.gamepad.connectedName() ?? ''
-      const shortName = name.length > 30 ? name.slice(0, 30) + '…' : name
+      const shortName = name.length > GAMEPAD_NAME_MAX_LEN
+        ? name.slice(0, GAMEPAD_NAME_MAX_LEN) + '…'
+        : name
       this.gamepadText.setColor('#44ff88').setText(`🎮 ${shortName}`)
     } else {
       this.gamepadText.setColor('#888888').setText('🎮 Not connected')

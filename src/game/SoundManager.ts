@@ -14,6 +14,9 @@ export class SoundManager {
 
   private running = false
 
+  private readonly engineStartVol = 0.18  // gain applied when race starts
+  private readonly audioSmoothing = 0.06  // time-constant (s) for all per-frame parameter ramps
+
   constructor() {
     this.ctx = new AudioContext()
 
@@ -90,7 +93,7 @@ export class SoundManager {
   start() {
     if (this.ctx.state === 'suspended') this.ctx.resume()
     this.running = true
-    this.engineGain.gain.setTargetAtTime(0.18, this.ctx.currentTime, 0.1)
+    this.engineGain.gain.setTargetAtTime(this.engineStartVol, this.ctx.currentTime, 0.1)
   }
 
   stop() {
@@ -104,17 +107,17 @@ export class SoundManager {
     if (!this.running) return
     const t = Math.abs(normalizedSpeed)
     const baseFreq = 75 + t * 200
-    this.engineOsc1.frequency.setTargetAtTime(baseFreq, this.ctx.currentTime, 0.06)
-    this.engineOsc2.frequency.setTargetAtTime(baseFreq * 1.04, this.ctx.currentTime, 0.06)
-    this.engineFilter.frequency.setTargetAtTime(300 + t * 900, this.ctx.currentTime, 0.06)
+    this.engineOsc1.frequency.setTargetAtTime(baseFreq, this.ctx.currentTime, this.audioSmoothing)
+    this.engineOsc2.frequency.setTargetAtTime(baseFreq * 1.04, this.ctx.currentTime, this.audioSmoothing)
+    this.engineFilter.frequency.setTargetAtTime(300 + t * 900, this.ctx.currentTime, this.audioSmoothing)
     const vol = 0.12 + t * 0.1
-    this.engineGain.gain.setTargetAtTime(vol, this.ctx.currentTime, 0.06)
+    this.engineGain.gain.setTargetAtTime(vol, this.ctx.currentTime, this.audioSmoothing)
   }
 
   /** Call when screeching (hard turn + speed, or on grass) */
   setScreech(active: boolean) {
     if (!this.running) return
-    const target = active ? 0.18 : 0
+    const target = active ? 0.02 : 0
     this.screechGain.gain.setTargetAtTime(target, this.ctx.currentTime, active ? 0.05 : 0.12)
   }
 

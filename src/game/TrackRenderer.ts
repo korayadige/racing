@@ -1,6 +1,9 @@
 import Phaser from 'phaser'
 import { OUTER, INNER } from './trackConstants'
 
+const ROAD_BAND_HALF  = 45 // half-width of the subtle lighter band painted across the mid-lane
+const BARRIER_OFFSET  = 24 // px gap between ellipse edge and centre of tire barrier circles
+
 /**
  * Renders the full track (background, road, kerbs, barriers, trees, finish line, checkpoints)
  * onto the given scene. Called once during scene creation.
@@ -25,9 +28,9 @@ export function renderTrack(scene: Phaser.Scene): void {
   const midA = (OUTER.a + INNER.a) / 2
   const midB = (OUTER.b + INNER.b) / 2
   g.fillStyle(0x333333)
-  g.fillEllipse(OUTER.cx, OUTER.cy, (midA + 45) * 2, (midB + 45) * 2)
+  g.fillEllipse(OUTER.cx, OUTER.cy, (midA + ROAD_BAND_HALF) * 2, (midB + ROAD_BAND_HALF) * 2)
   g.fillStyle(0x2e2e2e)
-  g.fillEllipse(OUTER.cx, OUTER.cy, (midA - 45) * 2, (midB - 45) * 2)
+  g.fillEllipse(OUTER.cx, OUTER.cy, (midA - ROAD_BAND_HALF) * 2, (midB - ROAD_BAND_HALF) * 2)
 
   // Inner grass island
   g.fillStyle(0x307224)
@@ -88,14 +91,14 @@ function drawTireBarriers(g: Phaser.GameObjects.Graphics): void {
     const color = colors[i % colors.length]
 
     g.fillStyle(0x000000, 0.3)
-    g.fillCircle(OUTER.cx + (OUTER.a + 24) * Math.cos(t) + 2, OUTER.cy + (OUTER.b + 24) * Math.sin(t) + 2, r)
+    g.fillCircle(OUTER.cx + (OUTER.a + BARRIER_OFFSET) * Math.cos(t) + 2, OUTER.cy + (OUTER.b + BARRIER_OFFSET) * Math.sin(t) + 2, r)
     g.fillStyle(color)
-    g.fillCircle(OUTER.cx + (OUTER.a + 24) * Math.cos(t), OUTER.cy + (OUTER.b + 24) * Math.sin(t), r)
+    g.fillCircle(OUTER.cx + (OUTER.a + BARRIER_OFFSET) * Math.cos(t), OUTER.cy + (OUTER.b + BARRIER_OFFSET) * Math.sin(t), r)
 
     g.fillStyle(0x000000, 0.3)
-    g.fillCircle(INNER.cx + (INNER.a - 24) * Math.cos(t) + 2, INNER.cy + (INNER.b - 24) * Math.sin(t) + 2, r)
+    g.fillCircle(INNER.cx + (INNER.a - BARRIER_OFFSET) * Math.cos(t) + 2, INNER.cy + (INNER.b - BARRIER_OFFSET) * Math.sin(t) + 2, r)
     g.fillStyle(color)
-    g.fillCircle(INNER.cx + (INNER.a - 24) * Math.cos(t), INNER.cy + (INNER.b - 24) * Math.sin(t), r)
+    g.fillCircle(INNER.cx + (INNER.a - BARRIER_OFFSET) * Math.cos(t), INNER.cy + (INNER.b - BARRIER_OFFSET) * Math.sin(t), r)
   }
 }
 

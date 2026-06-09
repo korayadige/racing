@@ -24,6 +24,8 @@ export class RaceScene extends Phaser.Scene {
   private readonly bounceDamping       = 0.3    // fraction of speed retained (inverted) after wall impact
   private readonly wallPushStep        = 3      // pixels pushed per iteration when resolving overlap
   private readonly wallPushMaxIters    = 25     // safety cap to prevent infinite loop on deep penetration
+  private readonly wallShakeDuration   = 110    // ms of camera shake on wall hit
+  private readonly wallShakeIntensity  = 0.005  // fraction of screen size for shake amplitude
 
   // ── Timing constants ──────────────────────────────────────────//
   private readonly initialFinishCooldown = 3000
@@ -59,6 +61,10 @@ export class RaceScene extends Phaser.Scene {
   private hud!: HUD
   private pauseMenu!: PauseMenu
 
+  // ── Visual effects ────────────────────────────────────────────//
+  private skidMarks!: Phaser.GameObjects.RenderTexture
+  private skidStamp!: Phaser.GameObjects.Graphics
+
   constructor() {
     super({ key: 'RaceScene' })
   }
@@ -81,14 +87,21 @@ export class RaceScene extends Phaser.Scene {
     this.countdownActive = true
     this.paused          = false
     this.pausedElapsed   = 0
-    gameStore.currentLap = 0
 
     this.sfx       = new SoundManager()
     this.gamepad   = new GamepadManager()
     this.hud       = new HUD(this, this.cpTextDuration)
     this.pauseMenu = new PauseMenu(this)
 
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.sfx.destroy())
+    this.skidMarks = this.add.renderTexture(0, 0, this.scale.width, this.scale.height).setDepth(5)
+    this.skidStamp = new Phaser.GameObjects.Graphics(this)
+    this.skidStamp.fillStyle(0x111111, 0.22)
+    this.skidStamp.fillCircle(0, 0, 5)
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.sfx.destroy()
+      this.skidStamp.destroy()
+    })
     this.input.keyboard!.on('keydown-ESC', () => this.togglePause())
 
     startCountdown(this, this.sfx, () => {
@@ -128,6 +141,7 @@ export class RaceScene extends Phaser.Scene {
     this.applyInput(steer, throttle, brake)
     this.moveCar()
     this.applyTrackPhysics()
+    this.drawSkidMarks(steer)
     this.checkCheckpoints()
     this.checkFinishLine(delta)
     this.hud.update({
@@ -179,14 +193,19 @@ export class RaceScene extends Phaser.Scene {
       const direction = this.speed > 0 ? 1 : -1
       this.carAngle += steer * this.turnSpeed * direction
 
-      // Cornering slowdown: harder the turn, more speed is bled off
+      // Cornering slowdown: skip at near-zero steer to avoid bleed on straight-line driving
       if (Math.abs(steer) > 0.1) {
         this.speed *= 1 - Math.abs(steer) * this.corneringSlowdown
       }
     }
   }
 
-  /** Moves the car forward along its current heading each frame. */
+  /**
+   * Moves the car forward along its current heading each frame.
+   *
+   * Angle-based movement model (each wheel moves only in the direction it points):
+   * https://engineeringdotnet.blogspot.com/2010/04/simple-2d-car-physics-in-games.html
+   */
   private moveCar() {
     const rad = Phaser.Math.DegToRad(this.carAngle)
     this.car.x += Math.sin(rad) * this.speed
@@ -198,7 +217,7 @@ export class RaceScene extends Phaser.Scene {
    * Resolves collisions with the outer and inner track boundaries.
    *
    * When the car leaves the track, two things happen:
-   *   1. Speed is reversed and damped by bounceDamping (simulates an inelastic wall hit).
+   *   1. Speed is damped by bounceDamping (simulates scraping the wall).
    *   2. The car is pushed back onto the track along the ellipse surface normal,
    *      wallPushStep pixels per iteration, until it is fully inside the boundary
    *      or wallPushMaxIters is reached (prevents infinite loops on deep penetration).
@@ -207,11 +226,15 @@ export class RaceScene extends Phaser.Scene {
    * which points perpendicular to the ellipse surface — more accurate than a plain
    * center-to-point vector for non-circular ellipses.
    *
-   * A collision sound is played only when the car is moving fast enough to be noticeable.
+   * Screen shake on impact inspired by:
+   * https://medium.com/@copet80/how-i-built-an-f1-top-down-racer-in-48-hours-3fc1a66a4716
    */
   private applyTrackPhysics() {
     if (ellipseValue(this.car.x, this.car.y, OUTER) > 1) {
-      if (Math.abs(this.speed) > 1) this.sfx.playHit()
+      if (Math.abs(this.speed) > 1) {
+        this.sfx.playHit()
+        this.cameras.main.shake(this.wallShakeDuration, this.wallShakeIntensity)
+      }
       this.speed *= this.bounceDamping
       const nx = (this.car.x - OUTER.cx) / (OUTER.a * OUTER.a)
       const ny = (this.car.y - OUTER.cy) / (OUTER.b * OUTER.b)
@@ -224,7 +247,10 @@ export class RaceScene extends Phaser.Scene {
     }
 
     if (ellipseValue(this.car.x, this.car.y, INNER) < 1) {
-      if (Math.abs(this.speed) > 1) this.sfx.playHit()
+      if (Math.abs(this.speed) > 1) {
+        this.sfx.playHit()
+        this.cameras.main.shake(this.wallShakeDuration, this.wallShakeIntensity)
+      }
       this.speed *= this.bounceDamping
       const nx = (this.car.x - INNER.cx) / (INNER.a * INNER.a)
       const ny = (this.car.y - INNER.cy) / (INNER.b * INNER.b)
@@ -234,6 +260,21 @@ export class RaceScene extends Phaser.Scene {
         this.car.x += (nx / len) * this.wallPushStep
         this.car.y += (ny / len) * this.wallPushStep
       }
+    }
+  }
+
+  /**
+   * Stamps a dark smear onto the persistent skid-mark texture when the car is drifting
+   * hard or driving on grass. The RenderTexture accumulates marks across frames.
+   *
+   * Skid-mark technique inspired by:
+   * https://medium.com/@romanvinnick/building-a-2d-drift-racing-game-with-react-pixi-js-and-physics-d9f9074c4d0c
+   */
+  private drawSkidMarks(steer: number) {
+    const hardTurn = Math.abs(steer) > 0.5 && Math.abs(this.speed) > this.maxSpeed * 0.45
+    const onGrass  = !isOnTrack(this.car.x, this.car.y)
+    if (hardTurn || (onGrass && Math.abs(this.speed) > 1)) {
+      this.skidMarks.draw(this.skidStamp, this.car.x, this.car.y)
     }
   }
 
@@ -276,10 +317,9 @@ export class RaceScene extends Phaser.Scene {
       this.speed > 0
     ) {
       if (this.nextCheckpoint < this.checkpoints.length) return
-      this.nextCheckpoint  = 0
+      this.nextCheckpoint = 0
       this.lapCount++
-      gameStore.currentLap = this.lapCount
-      this.finishCooldown  = this.lapCooldown
+      this.finishCooldown = this.lapCooldown
 
       if (this.lapCount >= gameStore.totalLaps) {
         this.raceFinished = true
@@ -403,7 +443,6 @@ export class RaceScene extends Phaser.Scene {
     this.car = this.add.sprite(OUTER.cx, OUTER.cy - OUTER.b + 55, 'car') // 55 px inside the top edge, just past the finish line
     this.car.setScale(0.82)
     this.car.setDepth(10)
-    this.carAngle = -90
-    this.car.setRotation(Phaser.Math.DegToRad(this.carAngle))
+    this.car.setRotation(Phaser.Math.DegToRad(-90))
   }
 }

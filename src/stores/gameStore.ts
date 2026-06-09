@@ -10,7 +10,6 @@ interface LapRecord {
 interface GameState {
   screen: GameScreen
   playerName: string
-  currentLap: number
   totalLaps: number
   bestTimes: LapRecord[]
   lastRaceTime: number
@@ -31,7 +30,6 @@ function loadBestTimes(): LapRecord[] {
 export const gameStore = reactive<GameState>({
   screen: 'menu',
   playerName: '',
-  currentLap: 0,
   totalLaps: 3,
   bestTimes: loadBestTimes(),
   lastRaceTime: 0,
@@ -39,7 +37,6 @@ export const gameStore = reactive<GameState>({
 
 export function startGame(name: string) {
   gameStore.playerName = name || 'Anonymous'
-  gameStore.currentLap = 0
   gameStore.screen = 'game'
 }
 

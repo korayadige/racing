@@ -32,7 +32,7 @@ export function startCountdown(
     label.setScale(1.5)
     scene.tweens.add({ targets: label, scale: 1, duration: 700, ease: 'Back.Out' })
 
-    if (step < 3) {
+    if (step < STEPS.length - 1) {
       sfx.playCountdownBeep()
     } else {
       sfx.playCountdownGo()
