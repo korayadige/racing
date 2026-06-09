@@ -145,8 +145,8 @@ src/
 
 | Name | Responsibilities |
 |------|-----------------|
-| Koray Akgul | Phaser scenes, car physics, track design, collision |
-| Jonatan Perret | Vue UI screens, Gamepad API integration, Web Audio API sounds |
+| Koray AKGUL | Phaser scenes, car physics, track design, collision |
+| Jonatan PERRET | Vue UI screens, Gamepad API integration, Web Audio API sounds |
 
 ---
 
