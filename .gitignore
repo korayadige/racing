@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Windows WSL2 Zone.Identifier metadata files
+*:Zone.Identifier
