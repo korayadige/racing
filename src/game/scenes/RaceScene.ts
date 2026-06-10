@@ -233,7 +233,10 @@ export class RaceScene extends Phaser.Scene {
     if (ellipseValue(this.car.x, this.car.y, OUTER) > 1) {
       if (Math.abs(this.speed) > 1) {
         this.sfx.playHit()
-        this.cameras.main.shake(this.wallShakeDuration, this.wallShakeIntensity)
+        this.cameras.main.shake(
+          this.wallShakeDuration, 
+          this.wallShakeIntensity
+        )
       }
       this.speed *= this.bounceDamping
       const nx = (this.car.x - OUTER.cx) / (OUTER.a * OUTER.a)
