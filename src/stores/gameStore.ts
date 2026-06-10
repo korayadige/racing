@@ -10,30 +10,39 @@ interface LapRecord {
 interface GameState {
   screen: GameScreen
   playerName: string
-  currentLap: number
   totalLaps: number
   bestTimes: LapRecord[]
   lastRaceTime: number
 }
 
+function loadBestTimes(): LapRecord[] {
+  try {
+    const raw = JSON.parse(localStorage.getItem('racing-best-times') ?? '[]')
+    if (!Array.isArray(raw)) return []
+    return raw.filter(
+      (r): r is LapRecord => typeof r?.playerName === 'string' && typeof r?.time === 'number',
+    )
+  } catch {
+    return []
+  }
+}
+
 export const gameStore = reactive<GameState>({
   screen: 'menu',
   playerName: '',
-  currentLap: 0,
   totalLaps: 3,
-  bestTimes: (() => { try { const d = JSON.parse(localStorage.getItem('racing-best-times') ?? '[]'); return Array.isArray(d) ? d : [] } catch { return [] } })(),
+  bestTimes: loadBestTimes(),
   lastRaceTime: 0,
 })
 
 export function startGame(name: string) {
   gameStore.playerName = name || 'Anonymous'
-  gameStore.currentLap = 0
   gameStore.screen = 'game'
 }
 
-export function finishRace(totalTime: number) {
-  const LIMIT_BEST_TIMES = 10;
+const LIMIT_BEST_TIMES = 10
 
+export function finishRace(totalTime: number) {
   gameStore.lastRaceTime = totalTime
   gameStore.bestTimes.push({ playerName: gameStore.playerName, time: totalTime })
   gameStore.bestTimes.sort((a, b) => a.time - b.time)
@@ -47,20 +56,8 @@ export function goToMenu() {
 }
 
 export function formatTime(ms: number): string {
- 
-  const MS_PER_SECOND = 1000      
-  const MS_PER_MINUTE = 60000      
-  const MS_PER_CENTISECOND = 10    
-
-  const minutes = Math.floor(ms / MS_PER_MINUTE)
-  const seconds = Math.floor((ms % MS_PER_MINUTE) / MS_PER_SECOND)
-  const centiseconds = Math.floor((ms % MS_PER_SECOND) / MS_PER_CENTISECOND)
-  
-  // String Padding
-  // for example 7 to "07"
-  const paddedSeconds = String(seconds).padStart(2, '0')
-  const paddedCentiseconds = String(centiseconds).padStart(2, '0')
-  
-  // template: "1:15.42"
-  return `${minutes}:${paddedSeconds}.${paddedCentiseconds}`
+  const m  = Math.floor(ms / 60000)
+  const s  = Math.floor((ms % 60000) / 1000)
+  const cs = Math.floor((ms % 1000) / 10)
+  return `${m}:${String(s).padStart(2, '0')}.${String(cs).padStart(2, '0')}`
 }

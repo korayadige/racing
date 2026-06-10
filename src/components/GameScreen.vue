@@ -1,6 +1,6 @@
 <template>
-  <div class="relative w-full h-screen flex items-center justify-center bg-[#1a1a2e]">
-    <div ref="gameContainer" class="border-2 border-white/10 rounded" />
+  <div class="w-full h-screen bg-[#2d6e22]">
+    <div ref="gameContainer" class="w-full h-full" />
   </div>
 </template>
 

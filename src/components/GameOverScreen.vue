@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col items-center justify-center min-h-screen gap-6">
+  <div class="flex flex-col items-center justify-center min-h-screen gap-6 bg-[#1a1a2e]">
     <h1 class="text-5xl font-bold text-green-400">RACE FINISHED!</h1>
 
     <div class="text-center">

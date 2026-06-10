@@ -3,6 +3,8 @@
 A top-down 2D racing game built with **Phaser 3**, **Vue 3**, and **TypeScript**.  
 Complete 3 laps as fast as possible and beat your best time!
 
+🎮 **Play directly in your browser:** [racing.microstack.ch](https://racing.microstack.ch)
+
 ---
 
 ## Technologies
@@ -15,6 +17,7 @@ Complete 3 laps as fast as possible and beat your best time!
 | Tailwind CSS | UI styling |
 | Web Audio API | Procedural sound effects (engine, screech, hit, melodies) |
 | Gamepad API | Controller support (Xbox, PlayStation, generic) |
+| Vite | Build tool and development server |
 
 ---
 
@@ -26,8 +29,8 @@ You need **Node.js v18 or higher** installed on your machine.
 - Verify your installation:
 
 ```bash
-node --version   # should print v18.x or higher
-npm --version    # should print 9.x or higher
+node --version  
+npm --version    
 ```
 
 ---
@@ -125,18 +128,23 @@ Or deploy `dist/` to any static host (Vercel, Netlify, GitHub Pages).
 src/
 ├── game/
 │   ├── scenes/
-│   │   ├── BootScene.ts       # Asset loading
-│   │   └── RaceScene.ts       # Track, car physics, HUD
+│   │   ├── BootScene.ts       # Scene entry point → starts RaceScene
+│   │   └── RaceScene.ts       # Game loop, car physics, collision, checkpoints
+│   ├── Countdown.ts           # 3-2-1-GO countdown sequence
 │   ├── GamepadManager.ts      # Gamepad API polling & deadzone
+│   ├── HUD.ts                 # In-game overlay (timer, lap, speed, gamepad)
+│   ├── PauseMenu.ts           # Pause overlay with resume/restart/menu
 │   ├── PhaserGame.ts          # Phaser configuration
-│   └── SoundManager.ts        # Web Audio API sound synthesis
+│   ├── SoundManager.ts        # Web Audio API sound synthesis
+│   ├── TrackRenderer.ts       # Track drawing (road, kerbs, trees, checkpoints)
+│   └── trackConstants.ts      # Ellipse geometry & boundary helpers
 ├── stores/
 │   └── gameStore.ts           # Shared reactive state (Vue ↔ Phaser)
 ├── components/
-│   ├── MenuScreen.vue          # Name input + leaderboard
-│   ├── GameScreen.vue          # Phaser canvas wrapper
-│   └── GameOverScreen.vue      # Results + replay button
-└── App.vue                     # Screen router
+│   ├── MenuScreen.vue         # Name input + leaderboard
+│   ├── GameScreen.vue         # Phaser canvas wrapper
+│   └── GameOverScreen.vue     # Results + replay button
+└── App.vue                    # Screen router
 ```
 
 ---
@@ -145,8 +153,8 @@ src/
 
 | Name | Responsibilities |
 |------|-----------------|
-| Developer A | Phaser scenes, car physics, track design, collision |
-| Developer B | Vue UI screens, Gamepad API integration, Web Audio API sounds |
+| Koray AKGUL | Phaser scenes, car physics, track design, collision |
+| Jonatan PERRET | Vue UI screens, Gamepad API integration, Web Audio API sounds |
 
 ---
 
