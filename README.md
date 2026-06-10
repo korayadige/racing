@@ -29,8 +29,8 @@ You need **Node.js v18 or higher** installed on your machine.
 - Verify your installation:
 
 ```bash
-node --version   # should print v18.x or higher
-npm --version    # should print 9.x or higher
+node --version  
+npm --version    
 ```
 
 ---
